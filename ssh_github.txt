@@ -1,6 +1,6 @@
 Werken met een ssh-key binnen GitHub.
 
-Je kunt met het commando: "ssh-hkeygen -t rsa -b 4096 -C "username@github.com"" een sleutelpaar aanmaken binnen je .ssh-directory.
+Je kunt met het commando: "ssh-keygen -t rsa -b 4096 -C "username@github.com"" een sleutelpaar aanmaken binnen je .ssh-directory.
 De publike sleutel kun je dan uploaden (kopieren en plakken) binnen github.com bij je Personal Account settings --> SSH and GPG keys invoeren.
 Je kunt meerdere sleutels (voor elke computer die je gebruikt een) aanmaken.
 
