@@ -1,0 +1,10 @@
+Werken met een ssh-key binnen GitHub.
+
+Je kunt met het commando: "ssh-hkeygen -t rsa -b 4096 -C "username@github.com"" een sleutelpaar aanmaken binnen je .ssh-directory.
+De publike sleutel kun je dan uploaden (kopieren en plakken) binnen github.com bij je Personal Account settings --> SSH and GPG keys invoeren.
+Je kunt meerdere sleutels (voor elke computer die je gebruikt een) aanmaken.
+
+Heb je dit allemaal klaar dan kun je met het commando:
+
+ssh -i <private_sleutel_naam> -T git@github.com jezelf valideren.
+Je krijgt geen ssh-shell maar voor je lokale git hoef je je niet meer te valideren met je gebruikersnaam en wachtwoord.
